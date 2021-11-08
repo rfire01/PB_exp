@@ -1,0 +1,5 @@
+Cannot add or update a child row: a foreign key constraint fails (`expKobi`.`EXP_ITEMS`, CONSTRAINT `fk_INPUT_EXP` FOREIGN KEY (`EXP_ID`) REFERENCES `EXPERIMMENTS` (`EXP_ID`))
+1627374745029 SQL ERROR: Cannot add or update a child row: a foreign key constraint fails (`expKobi`.`EXP_ITEMS`, CONSTRAINT `fk_INPUT_EXP` FOREIGN KEY (`EXP_ID`) REFERENCES `EXPERIMMENTS` (`EXP_ID`))
+1627374939625 SQL ERROR: Duplicate entry '9' for key 'PRIMARY'
+Tue Jul 27 2021 11:38:43 GMT+0300 (GMT+03:00) SQL ERROR: Cannot add or update a child row: a foreign key constraint fails (`expKobi`.`EXP_ITEMS`, CONSTRAINT `fk_INPUT_EXP` FOREIGN KEY (`EXP_ID`) REFERENCES `EXPERIMMENTS` (`EXP_ID`))
+Wed Jul 28 2021 10:32:21 GMT+0300 (GMT+03:00) - SQL ERROR: Cannot add or update a child row: a foreign key constraint fails (`expKobi`.`EXP_ITEMS`, CONSTRAINT `fk_INPUT_EXP` FOREIGN KEY (`EXP_ID`) REFERENCES `EXPERIMMENTS` (`EXP_ID`))
