@@ -1,4 +1,5 @@
 const mysqlssh = require('mysql-ssh');
+const mysql = require('mysql');
 const fs = require('fs');
 var path = require("path");
 const { exception } = require('console');
@@ -31,7 +32,23 @@ async function dbQuery(databaseQuery) {
           database: 'expKobi'
       }
     );
-  } 
+    // local db - dev
+    // conProm= await mysql.createConnection(
+    //     {
+    //       host: '127.0.0.1',
+    //       port: '3307',
+    //       user: 'root',
+    //       password: 'password',
+    //       database: 'expKobedev',
+    //     }
+    //   );
+
+    //   conProm.connect(function(err) {
+    //     if (err)  console.log(err);
+    //     else console.log("Connected!");
+    //   });
+
+  }  
   catch (e) {
     console.log("Error", e.stack);
     console.log("Error", e.name);
@@ -81,6 +98,23 @@ async function mul_dbQuery(queries) {
           database: 'expKobi'
       }
     );
+
+       // local db - dev
+      //  conProm= await mysql.createConnection(
+      //   {
+      //     host: '127.0.0.1',
+      //     port: '3307',
+      //     user: 'root',
+      //     password:'password' , // 'expirementMSQL119',
+      //     database: 'expKobedev',
+      //   }
+      // );
+
+      // conProm.connect(function(err) {
+      //   if (err)  console.log(err);
+      //   else console.log("Connected!");
+      // });
+
   } 
   catch (e) {
     console.log("Error", e.stack);
