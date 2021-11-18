@@ -5,9 +5,7 @@ var path = require("path");
 const { exception } = require('console');
 
 exports.executeQuery = async function(query){
-  let result= await dbQuery(query);
-  
-  return result;
+  return dbQuery(query);
 };
 exports.executeQueries = async function(queries){
   let result= await mul_dbQuery(queries);
@@ -16,10 +14,51 @@ exports.executeQueries = async function(queries){
 };
 
 async function dbQuery(databaseQuery) {
+  return new Promise(async (resolve, reject)  => {
 
-  let conProm=null;
-  try {
-    conProm= await mysqlssh.connect(
+  //local
+  // let conProm = getLocalDbConnection();
+  // await conProm.connect(function(err) {
+  //   if (err) reject(e);
+  //   else console.log("local Db");
+  // });
+
+  //production
+  let conProm = await getProductionDbConnectionConnectedPromise().catch( error => {
+    fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
+    fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
+    reject(e.sqlMessage);
+  });
+  
+  conProm.query(databaseQuery, function (error, result) {
+    if(error){
+      fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
+      fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
+      reject(error.sqlMessage);
+    }
+    resolve(result);
+  });
+
+});
+
+}
+
+function getLocalDbConnection(){
+      return mysql.createConnection(
+        {
+          host: '127.0.0.1',
+          port: '3307',
+          user: 'root',
+          password: 'password',
+          database: 'expKobedev',
+        }
+      );
+
+}
+
+
+function getProductionDbConnectionConnectedPromise(){
+      return mysqlssh.connect(
       {
           host: '3.8.178.219',
           user: 'ubuntu',
@@ -32,55 +71,9 @@ async function dbQuery(databaseQuery) {
           database: 'expKobi'
       }
     );
-    // local db - dev
-    // conProm= await mysql.createConnection(
-    //     {
-    //       host: '127.0.0.1',
-    //       port: '3307',
-    //       user: 'root',
-    //       password: 'password',
-    //       database: 'expKobedev',
-    //     }
-    //   );
-
-    //   conProm.connect(function(err) {
-    //     if (err)  console.log(err);
-    //     else console.log("Connected!");
-    //   });
-
-  }  
-  catch (e) {
-    console.log("Error", e.stack);
-    console.log("Error", e.name);
-    console.log("Error", e.message);
-  }
-  
-  
-  return new Promise(data => {
-    conProm.query(databaseQuery, function (error, result) {
-          if (error) {
-            fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-            fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
-            throw exception(error);
-          }
-          try {
-              // console.log(result);
-              
-              data(result);
-
-          } catch (error) {
-              data({});
-              fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-              fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
-              throw exception(error);
-          }
-
-      });
-    // conProm.end();
-  });
-
 }
 
+//Bad Query Design
 async function mul_dbQuery(queries) {
 
   let conProm=null;
@@ -150,11 +143,10 @@ async function mul_dbQuery(queries) {
   }
 
   return promises;
-
-
 }
 
 
+// load datasw to cvs file
 async function getDatabase2(){
   const Json2csvParser = require('json2csv').Parser;
   const fastcsv = require("fast-csv");
@@ -345,5 +337,3 @@ async function getDatabase2(){
 		});
 
 }
-
-// getDatabase2();

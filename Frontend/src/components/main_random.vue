@@ -4,7 +4,6 @@
 
 <script>
 const config = require("../config.js");
-import { asyncLoading } from 'vuejs-loading-plugin'
 
 export default {
     
@@ -43,7 +42,7 @@ export default {
             }
             this.$loading(false);
             this.$router.push("/participant_ID/participant_ID?participant_ID="+id);
-            asyncLoading(this.$parent.setConfigurations());
+            await this.$parent.setConfigurations();
             // this.$router.go(0);
         }
     }

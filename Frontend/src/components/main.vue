@@ -34,7 +34,8 @@ export default {
         }
     },
     mounted(){
-        localStorage.removeItem('participant_ID');
+        localStorage.clear();
+        //localStorage.removeItem('participant_ID');
     },
     methods:{
         async Start(){

@@ -64,7 +64,6 @@
 </template>
 
 <script>
-import { asyncLoading } from 'vuejs-loading-plugin';
 const config = require("../config.js");
 const questions = require("../consistency_questions.js");
 const voting_method = localStorage.getItem('voting_method');
@@ -148,11 +147,10 @@ export default {
               this.$parent.time_expired=true;
               return;
             }
-            
             this.$loading(true);
-
+            let haveTriedAgain = false;
+            
             new Promise((resolve, reject) => {
-                
                 this.$refs.ruleForm.validate((valid) => {
                     if(valid){
                         this.isConsistent=true;
@@ -169,8 +167,7 @@ export default {
             .then(async (consistant_value)=>{
                 let consistant=this.db_track;
                 let consistency_time=new Date().getTime()-parseInt(localStorage.getItem("budgeting_finish"));
-                // console.log(parseInt(localStorage.getItem("consistency_finish")));
-                console.log(consistency_time);
+                
                 let experiment_id=localStorage.getItem("experiment_id");
                 try {
                     await this.axios.post("http://"+config.data.server+"/addConsistency",{
@@ -178,6 +175,11 @@ export default {
                         experiment_id:experiment_id,
                         consistant:consistant,
                         consistency_time:consistency_time
+                    }).then(res => {
+                        if(res.status === 200){
+                            this.isConsistent = (res.data.isConsistent == '111')
+                            haveTriedAgain = true;
+                        }
                     });
                 } 
                 catch (error) {
@@ -189,7 +191,7 @@ export default {
                 this.$loading(false);
                 let time=new Date().getTime();
                 localStorage.setItem('consistency_finish',JSON.stringify(time));
-                this.$router.push({ name: 'Feedback_quiz', params: {isConsistent: this.isConsistent }});
+                this.$router.push({ name: 'Feedback_quiz', params: {isConsistent: this.isConsistent , haveTriedAgain: haveTriedAgain}});
             });
 
         }
