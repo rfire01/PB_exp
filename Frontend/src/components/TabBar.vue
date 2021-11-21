@@ -27,7 +27,6 @@ import Consent from './Consent.vue';
 import Instructions from './Instructions.vue';
 import PersonalQuestions from './PersonalQuestions.vue';
 import Quizz from './Quizz.vue';
-import { asyncLoading } from 'vuejs-loading-plugin'
 
 
 
@@ -47,12 +46,14 @@ export default {
          }
         }
        },
-    mounted(){
-      if(JSON.parse(localStorage.getItem('items'))==null){
-        asyncLoading(this.$parent.setConfigurations());
-        let time=new Date().getTime();
-        localStorage.setItem('startTime',JSON.stringify(time));
+    async mounted(){
+      await this.$parent.checkIfExist();
+      if(JSON.parse(localStorage.getItem('items'))==null && !this.$parent.userAllreadyExists){
+        await this.$parent.setConfigurations();
       }
+
+      let time =new Date().getTime();
+      localStorage.setItem('startTime',JSON.stringify(time));
     },
     methods: {
         onComplete: function(){
