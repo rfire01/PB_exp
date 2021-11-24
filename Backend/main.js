@@ -122,10 +122,10 @@ app.post("/addExperiment", async (req, res, next) => {
     await DButils.executeQuery(participantQuery).then(async () => {
       await DButils.executeQuery(expQuery).then(() => {
       }).catch(e => {
-        throw {status: 401};
+        throw {status: 401, message: 'duplicate attempt to participate the experiment - status 401'};
       });
     }).catch(e => {
-      throw {status: 401};
+      throw {status: 401 , message: 'duplicate attempt to participate the experiment - status 401'};
     });
 
     let exp_id = await DButils.executeQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
