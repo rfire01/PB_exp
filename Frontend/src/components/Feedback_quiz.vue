@@ -3,8 +3,8 @@
     <div v-if="!finished">
         <div style="text-align:center">
 
-            <b-alert dismissible style v-if="isConsistent" show variant="success">You passed the consistency check and you will recieve a $0.3 bonus</b-alert>
-            <b-alert dismissible style v-else show variant="warning">You FAILED the consistency check and you will not recieve a $0.3 bonus</b-alert>
+            <b-alert dismissible style v-if="isConsistent" show variant="success">{{haveTriedAgain? 'Consistency test can be filled once! ' : ''}} You passed the consistency check and you will recieve a $0.3 bonus</b-alert>
+            <b-alert dismissible style v-else show variant="warning">{{haveTriedAgain? 'Consistency test can be filled only once! ' : ''}} You FAILED the consistency check and you will not recieve a $0.3 bonus</b-alert>
             <br>
         </div>
         <h2 style="text-align:center">Feedback quiz  (fill to finish the experiment)</h2>
@@ -27,7 +27,7 @@ import "survey-vue/modern.css";
 
 export default {
     // components: { Survey},
-    props: ['isConsistent'],
+    props: ['isConsistent', 'haveTriedAgain'],
     data(){
         
         Survey
@@ -120,34 +120,40 @@ export default {
     },
     methods:{
         submit:async function(result){
-            let answers=result.data.feedback;
-            let ease_ans=answers.ease_ans;
-            let capture_ans=answers.capture_ans;
-            let interface_ans=answers.interface_ans;
-            let map_ans=answers.map_ans;
-            let cat_ans=answers.cat_ans;
-            let map_access_ans=answers.map_access_ans;
-            this.$loading(true);
-            let experiment_id=localStorage.getItem("experiment_id");
-            let total_time=new Date().getTime()-parseInt(localStorage.getItem("startTime"));
-            const token_data=await this.axios.post("http://"+config.data.server+"/addFeedback",{
-                experiment_id:experiment_id,
-                input_format:localStorage.getItem("voting_method"),
-                election:localStorage.getItem("election_num"),
-                q_ease:ease_ans,
-                q_interface:interface_ans,
-                q_capture:capture_ans,
-                q_map:map_ans,
-                q_cat:cat_ans,
-                q_map_access:map_access_ans,
-                total_time:total_time
-            });
-            this.token=token_data.data.token;
-            this.finished=true;
-            this.$loading(false);
-            localStorage.clear();
-            this.$parent.finished_exp=true;
-
+            try {
+                let answers=result.data.feedback;
+                let ease_ans=answers.ease_ans;
+                let capture_ans=answers.capture_ans;
+                let interface_ans=answers.interface_ans;
+                let map_ans=answers.map_ans;
+                let cat_ans=answers.cat_ans;
+                let map_access_ans=answers.map_access_ans;
+                this.$loading(true);
+                let experiment_id=localStorage.getItem("experiment_id");
+                let total_time=new Date().getTime()-parseInt(localStorage.getItem("startTime"));
+                const token_data=await this.axios.post("http://"+config.data.server+"/addFeedback",{
+                    experiment_id:experiment_id,
+                    input_format:localStorage.getItem("voting_method"),
+                    election:localStorage.getItem("election_num"),
+                    q_ease:ease_ans,
+                    q_interface:interface_ans,
+                    q_capture:capture_ans,
+                    q_map:map_ans,
+                    q_cat:cat_ans,
+                    q_map_access:map_access_ans,
+                    total_time:total_time
+                });
+                this.token=token_data.data.token;
+                this.finished=true;
+                this.$loading(false);
+                localStorage.clear();
+                this.$parent.finished_exp=true;
+            } catch {
+                this.$parent.finished_exp=false;
+                this.$parent.server_error=true;
+            } finally{
+                this.$loading(false);
+            }
         }
     }
 }

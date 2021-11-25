@@ -31,6 +31,7 @@ async function run(){
             let started=Math.max(row.STARTED-expired,row.FINISHED);
 
             let query=`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}', TIMES = '${updatedTimes}' WHERE INPUT_FORMAT = '${row.INPUT_FORMAT}' AND ELECTION = '${row.ELECTION}';`
+            //query
             queries.push(query);
             await DButils.executeQueries(queries);
         }
