@@ -32,6 +32,7 @@ async function dbQuery(databaseQuery) {
   
   conProm.query(databaseQuery, function (error, result) {
     if(error){
+      conProm.end();
       fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
       fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
       reject(error.sqlMessage);
