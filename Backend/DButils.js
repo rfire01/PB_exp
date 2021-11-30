@@ -17,22 +17,23 @@ async function dbQuery(databaseQuery) {
   return new Promise(async (resolve, reject)  => {
 
   //local
-  // let conProm = getLocalDbConnection();
-  // await conProm.connect(function(err) {
-  //   if (err) reject(e);
-  //   else console.log("local Db");
-  // });
+  let conProm = getLocalDbConnection();
+  await conProm.connect(function(err) {
+    if (err) reject(e);
+    else console.log("local Db");
+  });
 
   //production
-  let conProm = await getProductionDbConnectionConnectedPromise().catch( error => {
-    fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-    fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
-    reject(e.sqlMessage);
-  });
+  // let conProm = await getProductionDbConnectionConnectedPromise().catch( error => {
+  //   fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
+  //   fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
+  //   reject(e.sqlMessage);
+  // });
   
   conProm.query(databaseQuery, function (error, result) {
+    conProm.end();
+    console.log('local DB End')
     if(error){
-      conProm.end();
       fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
       fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
       reject(error.sqlMessage);
