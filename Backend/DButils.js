@@ -31,8 +31,8 @@ async function dbQuery(databaseQuery) {
   });
   
   conProm.query(databaseQuery, function (error, result) {
-    conProm.end();
     if(error){
+      conProm.end();
       fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
       fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
       reject(error.sqlMessage);
@@ -103,6 +103,7 @@ async function mul_dbQuery(queries) {
       //     database: 'expKobedev',
       //   }
       // );
+
       // conProm.connect(function(err) {
       //   if (err)  console.log(err);
       //   else console.log("Connected!");
