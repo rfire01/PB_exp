@@ -15,8 +15,8 @@ var corsOptions = {
 }
 app.use(cors(corsOptions));
 let logStream = fs.createWriteStream(path.join("./", 'logger.log'), {flags: 'a'});
-app.use(logger('combined', { stream: logStream }));
-// app.use(logger("dev")); //logger
+//app.use(logger('combined', { stream: logStream }));
+app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
 app.use(
   session({
@@ -224,29 +224,26 @@ app.post("/addFeedback", async (req, res, next) => {
 
 app.get("/config", async (req, res, next) => {
   try {
-    let return_items=[];
-    chosen_method="";
-    //round robin - the user will get the senario with the minimum amout of people started
+
+
+    //round robin - the user will get the senario with the minimum amout of people finished
     let combinations=await DButils.executeQuery('SELECT * FROM ELECTIONS_INPUT_FORMATS').catch(e => {
       throw e;
     });;
 
-    let minStarted={index:0,started:combinations[0].STARTED};
+    let minFinished={index: 0, finished: combinations[0].FINISHED};
     for (let i = 0; i < combinations.length; i++) {
-      if(combinations[i].STARTED<minStarted.started){
-        minStarted.started=combinations[i].STARTED;
-        minStarted.index=i;
+      if(combinations[i].FINISHED < minFinished.finished){
+        minFinished.finished=combinations[i].FINISHED;
+        minFinished.index=i;
       }
     }
-    if(minStarted.started>=50){
-      res.status(200).send({'finished':true});
-    }
 
-    chosen_method=combinations[minStarted.index].INPUT_FORMAT;
-    chosen_election=combinations[minStarted.index].ELECTION;
-    old_time=combinations[minStarted.index].TIMES;
-    new_time=combinations[minStarted.index].TIMES+"#"+new Date().getTime();
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${combinations[minStarted.index].STARTED+1}', TIMES = '${new_time}'
+    let chosen_method=combinations[minFinished.index].INPUT_FORMAT;
+    let chosen_election=combinations[minFinished.index].ELECTION;
+    let new_time=combinations[minFinished.index].TIMES+"#"+new Date().getTime();
+
+    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${combinations[minFinished.index].STARTED++}', TIMES = '${new_time}'
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
@@ -255,6 +252,8 @@ app.get("/config", async (req, res, next) => {
     let items = await DButils.executeQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
       throw e;
     });
+
+    let return_items=[];
     items.forEach(row => {
       return_items.push({'item_id':row.ITEM_ID,'item_name':row.ITEM_NAME,'item_value':row.VALUE,'item_group':row.GROUP_NAME,'item_desc':row.DESCRIPTION,'url':row.URL,'coords':row.COORDS});
     });
