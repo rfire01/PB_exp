@@ -225,25 +225,16 @@ app.post("/addFeedback", async (req, res, next) => {
 app.get("/config", async (req, res, next) => {
   try {
 
-
     //round robin - the user will get the senario with the minimum amout of people finished
-    let combinations=await DButils.executeQuery('SELECT * FROM ELECTIONS_INPUT_FORMATS').catch(e => {
+    let minCombination = await DButils.executeQuery('SELECT * FROM ELECTIONS_INPUT_FORMATS where FINISHED = (SELECT MIN(FINISHED) FROM ELECTIONS_INPUT_FORMATS)').catch(e => {
       throw e;
-    });;
+    });
 
-    let minFinished={index: 0, finished: combinations[0].FINISHED};
-    for (let i = 0; i < combinations.length; i++) {
-      if(combinations[i].FINISHED < minFinished.finished){
-        minFinished.finished=combinations[i].FINISHED;
-        minFinished.index=i;
-      }
-    }
+    let chosen_method=minCombination[0].INPUT_FORMAT;
+    let chosen_election=minCombination[0].ELECTION;
+    let new_time=minCombination[0].TIMES+"#"+new Date().getTime();
 
-    let chosen_method=combinations[minFinished.index].INPUT_FORMAT;
-    let chosen_election=combinations[minFinished.index].ELECTION;
-    let new_time=combinations[minFinished.index].TIMES+"#"+new Date().getTime();
-
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${combinations[minFinished.index].STARTED++}', TIMES = '${new_time}'
+    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED++}', TIMES = '${new_time}'
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
