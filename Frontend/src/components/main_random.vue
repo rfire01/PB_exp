@@ -14,8 +14,6 @@ export default {
     mounted(){
         localStorage.clear();
         let time=new Date().getTime();
-        localStorage.setItem('startTime',JSON.stringify(time));
-        // localStorage.removeItem('participant_ID');
         this.Start();
 
     },
@@ -43,7 +41,6 @@ export default {
             this.$loading(false);
             this.$router.push("/participant_ID/participant_ID?participant_ID="+id);
             await this.$parent.setConfigurations();
-            // this.$router.go(0);
         }
     }
 

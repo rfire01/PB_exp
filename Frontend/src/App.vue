@@ -2,7 +2,7 @@
   <div id="app">
     <div v-if="!server_error" id="connection good">
       <router-view
-        v-if="!userBlacklisted && !userAllreadyExists && !capacity_filled"
+        v-if="userBlacklisted === false && userAllreadyExists === false && !capacity_filled"
       ></router-view>
       <div
         v-else-if="time_expired"
@@ -80,6 +80,16 @@ export default {
       worker_id: "",
     };
   },
+  watch: {
+    '$route' (to, from) {
+       if (to !== null && !window.location.href.endsWith('/#/') && !window.location.href.includes('Consistency') 
+        && !window.location.href.includes('Feedback_quiz')){
+         this.checkIfExist();
+      } else {
+         this.userAllreadyExists = false;
+      }
+    }
+  },
   async mounted() {
     // Add a response interceptor
     this.axios.interceptors.response.use(
@@ -105,26 +115,24 @@ export default {
       }
     );
 
-    if (
-      new Date().getTime() - parseInt(localStorage.getItem("startTime")) >
-      3600000
-    ) {
-      this.time_expired = true;
-    }
-    console.log(this.$router.currentRoute.name);
-
     if (JSON.parse(localStorage.getItem("participant_ID")) != null) {
       await this.checkIfBlackListed();
 
-      if (
-        JSON.parse(localStorage.getItem("items")) == null &&
-        this.finished_exp == false
-      ) {
+      if (!window.location.href.endsWith('/#/') && !window.location.href.includes('Consistency') 
+         && !window.location.href.includes('Feedback_quiz')){
         await this.checkIfExist();
+        if(!this.userAllreadyExists){
+          if (new Date().getTime() - parseInt(localStorage.getItem("startTime")) >
+            3600000) {
+            this.time_expired = true;
+          }
+        }
+      } else {
+         this.userAllreadyExists = false;
       }
-
-      this.getCurrTime();
     }
+
+
 
     if (
       JSON.parse(localStorage.getItem("final_items")) != null &&
@@ -172,6 +180,7 @@ export default {
     async checkIfExist() {
       const participant_ID = localStorage.getItem("participant_ID");
       let existsResponse = null;
+      this.userAllreadyExists = undefined;
       try {
         existsResponse = await this.axios.get(
           "http://" +
