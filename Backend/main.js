@@ -15,8 +15,8 @@ var corsOptions = {
 }
 app.use(cors(corsOptions));
 let logStream = fs.createWriteStream(path.join("./", 'logger.log'), {flags: 'a'});
-//app.use(logger('combined', { stream: logStream }));
-app.use(logger("dev")); //logger
+app.use(logger('combined', { stream: logStream }));
+// app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
 app.use(
   session({
