@@ -2,7 +2,7 @@
   <div id="app">
     <div v-if="!server_error" id="connection good">
       <router-view
-        v-if="userBlacklisted === false && userAllreadyExists === false && !capacity_filled"
+        v-if="userBlacklisted === false && userAllreadyExists === false && !capacity_filled && !time_expired"
       ></router-view>
       <div
         v-else-if="time_expired"
@@ -121,18 +121,16 @@ export default {
       if (!window.location.href.endsWith('/#/') && !window.location.href.includes('Consistency') 
          && !window.location.href.includes('Feedback_quiz')){
         await this.checkIfExist();
-        if(!this.userAllreadyExists){
-          if (new Date().getTime() - parseInt(localStorage.getItem("startTime")) >
-            3600000) {
-            this.time_expired = true;
-          }
-        }
       } else {
          this.userAllreadyExists = false;
       }
     }
 
-
+    if(!this.userAllreadyExists && !this.userBlacklisted){
+      if (localStorage.getItem("startTime") !== null && (new Date().getTime() - parseInt(localStorage.getItem("startTime"))) > 3600000) {
+        this.time_expired = true;
+      }
+    }
 
     if (
       JSON.parse(localStorage.getItem("final_items")) != null &&
