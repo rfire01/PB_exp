@@ -225,8 +225,14 @@ app.post("/addFeedback", async (req, res, next) => {
 app.get("/config", async (req, res, next) => {
   try {
 
-    //round robin - the user will get the senario with the minimum amout of people finished
-    let minCombination = await DButils.executeQuery('SELECT * FROM ELECTIONS_INPUT_FORMATS where FINISHED = (SELECT MIN(FINISHED) FROM ELECTIONS_INPUT_FORMATS)').catch(e => {
+    // round robin - the user will get the senario with the minimum amout of
+    // people finished and started at a ratio of 1.25/1 (finished / started)
+    let roundRobinQuery = `SELECT * 
+    FROM ELECTIONS_INPUT_FORMATS 
+    ORDER BY (FINISHED * 1.25 + (STARTED-FINISHED)) ASC
+    LIMIT 1;`
+
+    let minCombination = await DButils.executeQuery(roundRobinQuery).catch(e => {
       throw e;
     });
 
