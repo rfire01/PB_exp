@@ -47,13 +47,14 @@ export default {
         }
        },
     async mounted(){
-      await this.$parent.checkIfExist();
-      if(JSON.parse(localStorage.getItem('items'))==null && !this.$parent.userAllreadyExists){
-        await this.$parent.setConfigurations();
-      }
+      if(!this.$parent.userAllreadyExists && !this.$parent.userBlacklisted){
+        if(JSON.parse(localStorage.getItem('items'))===null) {
+          await this.$parent.setConfigurations();
+        }
 
-      let time =new Date().getTime();
-      localStorage.setItem('startTime',JSON.stringify(time));
+        let time =new Date().getTime();
+        localStorage.setItem('startTime',JSON.stringify(time));
+      }
     },
     methods: {
         onComplete: function(){

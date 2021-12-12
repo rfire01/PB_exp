@@ -224,29 +224,23 @@ app.post("/addFeedback", async (req, res, next) => {
 
 app.get("/config", async (req, res, next) => {
   try {
-    let return_items=[];
-    chosen_method="";
-    //round robin - the user will get the senario with the minimum amout of people started
-    let combinations=await DButils.executeQuery('SELECT * FROM ELECTIONS_INPUT_FORMATS').catch(e => {
+
+    // round robin - the user will get the senario with the minimum amout of
+    // people finished and started at a ratio of 1.25/1 (finished / started)
+    let roundRobinQuery = `SELECT * 
+    FROM ELECTIONS_INPUT_FORMATS 
+    ORDER BY (FINISHED * 1.25 + (STARTED-FINISHED)) ASC
+    LIMIT 1;`
+
+    let minCombination = await DButils.executeQuery(roundRobinQuery).catch(e => {
       throw e;
-    });;
+    });
 
-    let minStarted={index:0,started:combinations[0].STARTED};
-    for (let i = 0; i < combinations.length; i++) {
-      if(combinations[i].STARTED<minStarted.started){
-        minStarted.started=combinations[i].STARTED;
-        minStarted.index=i;
-      }
-    }
-    if(minStarted.started>=50){
-      res.status(200).send({'finished':true});
-    }
+    let chosen_method=minCombination[0].INPUT_FORMAT;
+    let chosen_election=minCombination[0].ELECTION;
+    let new_time=minCombination[0].TIMES+"#"+new Date().getTime();
 
-    chosen_method=combinations[minStarted.index].INPUT_FORMAT;
-    chosen_election=combinations[minStarted.index].ELECTION;
-    old_time=combinations[minStarted.index].TIMES;
-    new_time=combinations[minStarted.index].TIMES+"#"+new Date().getTime();
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${combinations[minStarted.index].STARTED+1}', TIMES = '${new_time}'
+    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED + 1}', TIMES = '${new_time}'
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
@@ -255,6 +249,8 @@ app.get("/config", async (req, res, next) => {
     let items = await DButils.executeQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
       throw e;
     });
+
+    let return_items=[];
     items.forEach(row => {
       return_items.push({'item_id':row.ITEM_ID,'item_name':row.ITEM_NAME,'item_value':row.VALUE,'item_group':row.GROUP_NAME,'item_desc':row.DESCRIPTION,'url':row.URL,'coords':row.COORDS});
     });

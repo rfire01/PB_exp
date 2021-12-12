@@ -135,7 +135,6 @@ export default {
             else
                 this.db_track+="0";
 
-            console.log(this.db_track);
             if(this.db_track=="111")
                 return new Promise((resolve, reject) => {resolve(true)});
             else
