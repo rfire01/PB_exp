@@ -34,7 +34,6 @@ var port = process.env.PORT || "3000";
 
 app.get("/userExists/participant_ID/:participant_ID", async (req, res, next) => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
     const { participant_ID } = req.params;
     console.log("part_id: "+participant_ID);
 
@@ -245,7 +244,6 @@ app.get("/config", async (req, res, next) => {
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
-    console.log('asmin: '+minCombination[0].STARTED + 1);
 
     //get the items of the election in randomized order
     let items = await DButils.executeQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
