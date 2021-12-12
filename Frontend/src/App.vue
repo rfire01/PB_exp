@@ -182,6 +182,7 @@ export default {
       let existsResponse = null;
       this.userAllreadyExists = undefined;
       try {
+        this.$loading(true);
         existsResponse = await this.axios.get(
           "http://" +
             config.data.server +
@@ -190,11 +191,10 @@ export default {
         );
       } catch (error) {
         this.server_error = true;
+      } finally {
+        this.$loading(false);
       }
       this.userAllreadyExists = existsResponse.data.exists;
-	  if(!this.userAllreadyExists){
-      await this.setConfigurations();
-	  }
     },
     async checkIfBlackListed() {
       const participant_ID = localStorage.getItem("participant_ID");
