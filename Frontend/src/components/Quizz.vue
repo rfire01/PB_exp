@@ -94,10 +94,10 @@
 <script>
 const questions = require("../quiz_questions.js");
 const voting_method = localStorage.getItem('voting_method');
-console.log(questions.data["Threshold"]);
 export default {
     data(){
         return{
+            questions:questions.data[voting_method],
             formInline:{
                 question1:0,
                 question2:0,
@@ -108,7 +108,6 @@ export default {
             rules: {
                 allQuestions: [{ validator: this.q1Vall,trigger: 'blur'}],
             },
-            questions:questions.data[voting_method],
             // voting_method: localStorage.getItem('voting_method')
             voting_method: voting_method
         }

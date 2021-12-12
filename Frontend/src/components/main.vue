@@ -54,6 +54,7 @@ export default {
                     console.log(existsResponse.data.exists);
                 } 
                 catch (error) {
+                    this.$loading(false);
                     this.server_error=true;
                     console.log(error);
                 }
