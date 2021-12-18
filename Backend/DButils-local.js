@@ -15,11 +15,11 @@ exports.executeTrustedQueries = async function(queries){
 exports.executeProtectedQuery = async function(databaseQuery, values) {
   return new Promise(async (resolve, reject)  => {
 
-  //production
-  let conProm = await getProductionDbConnectionConnectedPromise().catch( error => {
-    fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-    fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
-    reject(e.sqlMessage);
+  //local
+  let conProm = getLocalDbConnection();
+  await conProm.connect(function(err) {
+    if (err) reject(e);
+    else console.log("local Db");
   });
   
   conProm.query(databaseQuery, values, function (error, result) {
@@ -31,17 +31,19 @@ exports.executeProtectedQuery = async function(databaseQuery, values) {
     }
     resolve(result);
   });
+
 });
+
 }
 
 async function dbQuery(databaseQuery) {
     return new Promise(async (resolve, reject)  => {
 
-    //production
-    let conProm = await getProductionDbConnectionConnectedPromise().catch( error => {
-      fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-      fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
-      reject(e.sqlMessage);
+    //local
+    let conProm = getLocalDbConnection();
+    await conProm.connect(function(err) {
+      if (err) reject(e);
+      else console.log("local Db");
     });
     
     conProm.query(databaseQuery, function (error, result) {
@@ -69,6 +71,7 @@ function getLocalDbConnection(){
           database: 'expKobedev',
         }
       );
+
 }
 
 
@@ -92,20 +95,20 @@ async function multipleDBbQueries(queries) {
   let conProm=null;
   try {
     
-    // production
-    conProm= await mysqlssh.connect(
-      {
-          host: '3.8.178.219',
-          user: 'ubuntu',
-          privateKey: fs.readFileSync('LightsailDefaultKey-eu-west-2.pem')
-      },
-      {
+       // local db - dev
+       conProm= await mysql.createConnection(
+        {
           host: '127.0.0.1',
+          port: '3307',
           user: 'root',
-          password: 'mkmHAD20/',
-          database: 'expKobi'
-      }
-    );
+          password:'password' , // 'expirementMSQL119',
+          database: 'expKobedev',
+        }
+      );
+      conProm.connect(function(err) {
+        if (err)  console.log(err);
+        else console.log("local Db");
+      });
 
   } 
   catch (e) {

@@ -5,6 +5,8 @@ var path = require("path");
 var logger = require("morgan");
 const session = require("client-sessions");
 const cors = require("cors");
+//dev
+//const DButils = require("./DButils-local");
 const DButils = require("./DButils");
 var fs = require('fs');
 
@@ -35,9 +37,9 @@ var port = process.env.PORT || "3000";
 app.get("/userExists/participant_ID/:participant_ID", async (req, res, next) => {
   try {
     const { participant_ID } = req.params;
-    console.log("part_id: "+participant_ID);
+    console.log("part_id: " + participant_ID);
 
-    let queryRes = await DButils.executeQuery(`select * from PARTICIPANTS WHERE PARTICIPANT_ID='${participant_ID}'`).catch(e => {
+    let queryRes = await DButils.executeProtectedQuery('SELECT * FROM PARTICIPANTS WHERE PARTICIPANT_ID = ?', [participant_ID]).catch(e => {
       throw e;
     });
 
@@ -55,7 +57,7 @@ app.get("/userExists/participant_ID/:participant_ID", async (req, res, next) => 
 app.get("/isBlacklisted/participant_ID/:participant_ID", async (req, res, next) => {
   try {
     const { participant_ID } = req.params;
-    let queryRes = await DButils.executeQuery(`select * from BLACKLIST WHERE PARTICIPANT_ID='${participant_ID}'`).catch(e => {
+    let queryRes = await DButils.executeProtectedQuery(`select * from BLACKLIST WHERE PARTICIPANT_ID = ?`, [participant_ID]).catch(e => {
       throw e;
     });
 
@@ -76,15 +78,15 @@ app.post("/insertToBlacklist", async (req, res, next) => {
     const participant_ID=req.body.participant_ID;
     const voting_method=req.body.voting_method;
     const election_num=req.body.election_num;
-    await DButils.executeQuery(`INSERT INTO BLACKLIST VALUE ('${participant_ID}')`).catch(e => {
-      throw e;
-    });;
 
-    // remove from counting
-    let data=await DButils.executeQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS WHERE INPUT_FORMAT='${voting_method}' AND ELECTION='${election_num}'`).catch(e => {
+    await DButils.executeProtectedQuery(`INSERT INTO BLACKLIST VALUE (?)`, [participant_ID]).catch(e => {
       throw e;
     });
 
+    // remove from counting
+    let data=await DButils.executeProtectedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS WHERE INPUT_FORMAT = ? AND ELECTION = ?`, [voting_method, election_num]).catch(e => {
+      throw e;
+    });
     let timeArr=data[0].TIMES.split('#');
     let updatedTimes='';
     for(let i=2;i<timeArr.length;i++){
@@ -92,7 +94,8 @@ app.post("/insertToBlacklist", async (req, res, next) => {
         updatedTimes=updatedTimes+"#"+timeArr[i];
     }
     let started=data[0].STARTED-1;
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}', TIMES = '${updatedTimes}' WHERE INPUT_FORMAT = '${voting_method}' AND ELECTION = '${election_num}';`).catch(e => {
+    await DButils.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}',TIMES = '${updatedTimes}' 
+                                WHERE INPUT_FORMAT = ? AND ELECTION = ?;`,  [voting_method, election_num]).catch(e => {
       throw e;
     });
 
@@ -117,10 +120,19 @@ app.post("/addExperiment", async (req, res, next) => {
     const homePos=req.body.homePos;
 
 
-    let participantQuery = `INSERT INTO PARTICIPANTS (PARTICIPANT_ID,AGE,EDUCATION,GENDER) VALUE ('${participant_ID}','${participant_info.age}','${participant_info.education}','${participant_info.gender}')`;
-    let expQuery  = `INSERT INTO EXPERIMMENTS (PARTICIPANT_ID,CURTIME,TUTORIAL_TIME,QUIZ_TIME,RESPONSE_TIME,ISCONSISTENT,INPUT_FORMAT,ELECTION_NUM,LOCATION_MAP) VALUE ('${participant_ID}','${time}','${tutorial_time}','${quiz_time}','${response_time}','${consistant}','${input_format}','${election_num}','${homePos}')`;
-    await DButils.executeQuery(participantQuery).then(async () => {
-      await DButils.executeQuery(expQuery).then(() => {
+    let participantQuery = `INSERT INTO PARTICIPANTS (PARTICIPANT_ID,AGE,EDUCATION,GENDER) VALUE (?,?,?,?)`;
+    let participantQueryValues = [participant_ID,participant_info.age,participant_info.education,participant_info.gender];
+
+    let expQuery  = `INSERT INTO EXPERIMMENTS 
+                        (PARTICIPANT_ID,CURTIME,TUTORIAL_TIME,QUIZ_TIME,RESPONSE_TIME,ISCONSISTENT,INPUT_FORMAT,ELECTION_NUM,LOCATION_MAP) VALUE (?,?,?,?,?,?,?,?,?)`;
+    let expQueryValues = [participant_ID, time, tutorial_time,quiz_time, response_time, consistant, input_format, election_num, homePos];
+
+    // Adds participant
+    await DButils.executeProtectedQuery(participantQuery, participantQueryValues).then(async () => {
+
+      //Adds participant's Experiment
+      await DButils.executeProtectedQuery(expQuery, expQueryValues).then(() => {
+
       }).catch(e => {
         throw {status: 401, message: 'duplicate attempt to participate the experiment - status 401'};
       });
@@ -128,22 +140,24 @@ app.post("/addExperiment", async (req, res, next) => {
       throw {status: 401 , message: 'duplicate attempt to participate the experiment - status 401'};
     });
 
-    let exp_id = await DButils.executeQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
+    //Adds expirement final items
+    let exp_id = await DButils.executeTrustedQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
       throw e;
     });
 
     exp_id[0]["max"]=parseInt(exp_id[0]["max"]);
-    // console.log("epx id: "+exp_id[0]["max"]);
 
+    let itemsQuery="INSERT INTO EXP_ITEMS (EXP_ID,ITEM_ID,VALUE) VALUES ";
+    let itemsQueryValues = []
 
-    let items_query="INSERT INTO EXP_ITEMS (EXP_ID,ITEM_ID,VALUE) VALUES ";
     for (let index = 0; index < items.length; index++) {
       let item=items[index];
-      if(index>0) items_query+=",";
-      items_query+="("+exp_id[0]["max"]+","+item.item_id+",'"+item.item_value+"')";
+      if(index>0) itemsQuery+=",";
+      itemsQuery+="(?,?,?)";
+      itemsQueryValues.push(exp_id[0]["max"] , item.item_id , item.item_value);
     }
 
-    await DButils.executeQuery(items_query).catch(e => {
+    await DButils.executeProtectedQuery(itemsQuery, itemsQueryValues).catch(e => {
       throw e;
     });
 
@@ -161,19 +175,20 @@ app.post("/addConsistency", async (req, res, next) => {
     if(!experiment_id){
       throw {status: 401};
     } else {
-      let CurrentConsistency = await DButils.executeQuery(`select ISCONSISTENT from EXPERIMMENTS WHERE EXP_ID = '${experiment_id}';`).catch(e => {
-        throw e;
-      });
+      let CurrentConsistency = 
+        await DButils.executeProtectedQuery(`SELECT ISCONSISTENT FROM EXPERIMMENTS WHERE EXP_ID = ?;`, [experiment_id]).catch(e => {
+          throw e;
+        });
       if(CurrentConsistency[0].ISCONSISTENT !== '0' ){
-        res.status(200).send({ message: "consistency cannot be filled twice. please finish the expirement." , isConsistent : CurrentConsistency[0].ISCONSISTENT});
+        res.status(200).send({ message: "consistency cannot be filled twice. please finish the expirement." ,
+        isConsistent : CurrentConsistency[0].ISCONSISTENT});
         return;
       }
-      await DButils.executeQuery(`UPDATE EXPERIMMENTS SET ISCONSISTENT = '${consistant}', CONSISTENCY_TIME='${consistency_time}'
-      WHERE EXP_ID = '${experiment_id}';`).catch(e => {
+      await DButils.executeProtectedQuery(`UPDATE EXPERIMMENTS SET ISCONSISTENT = ?, CONSISTENCY_TIME= ? WHERE EXP_ID = ?;`,
+       [consistant, consistency_time, experiment_id] ).catch(e => {
         throw e;
-      });;
+      });
     }
-
 
     res.status(201).send({ message: "consistency added"});
   } catch (error) {
@@ -198,23 +213,26 @@ app.post("/addFeedback", async (req, res, next) => {
     const token=Math.floor(100000 + Math.random() * 900000);
 
     //update the Experiments table with the feedback
-    await DButils.executeQuery(`UPDATE EXPERIMMENTS SET FEEDBACK_EASE = '${q_ease}',
-                                FEEDBACK_INTERFACE ='${q_interface}', FEEDBACK_CAPTURE = '${q_capture}',FEEDBACK_MAP = '${q_map}',
-                                FEEDBACK_CATEGORIES = '${q_cat}', FEEDBACK_MAP_ACCESS = '${q_map_access}', TOTAL_TIME = '${total_time}', TOKEN = '${token}'
-                                WHERE EXP_ID = '${experiment_id}';`).catch(e => {
-                                  throw e;
-                                });;
+    const feedbackQuery = `UPDATE EXPERIMMENTS
+                SET FEEDBACK_EASE = ?, FEEDBACK_INTERFACE =?, FEEDBACK_CAPTURE = ?,FEEDBACK_MAP = ?,
+                FEEDBACK_CATEGORIES = ?, FEEDBACK_MAP_ACCESS = ?, TOTAL_TIME = ?, TOKEN = ?
+                WHERE EXP_ID = ?;` 
+    const feedbackQueryValues = [q_ease, q_interface, q_capture, q_map, q_cat, q_map_access, total_time, token, experiment_id]
+
+    await DButils.executeProtectedQuery(feedbackQuery, feedbackQueryValues).catch(e => {
+        throw e;
+    });
     
-    let finishedByNow=await DButils.executeQuery(`SELECT FINISHED FROM ELECTIONS_INPUT_FORMATS
-                                            WHERE INPUT_FORMAT = '${input_format}' AND ELECTION = '${election}';`).catch(e => {
-                                              throw e;
-                                            });
+    let finishedByNow=await DButils.executeProtectedQuery(`SELECT FINISHED FROM ELECTIONS_INPUT_FORMATS
+        WHERE INPUT_FORMAT = ? AND ELECTION = ?;`, [input_format, election]).catch(e => {
+          throw e;
+        });
 
     //mark that the user complited the experiment
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET FINISHED = '${finishedByNow[0].FINISHED+1}'
-                              WHERE INPUT_FORMAT = '${input_format}' AND ELECTION = '${election}';`).catch(e => {
-                                throw e;
-                              });;
+    await DButils.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET FINISHED = '${finishedByNow[0].FINISHED+1}'
+        WHERE INPUT_FORMAT = ? AND ELECTION = ?;`, [input_format, election]).catch(e => {
+          throw e;
+        });
 
     res.status(201).send({ token: token});
   } catch (error) {
@@ -232,7 +250,7 @@ app.get("/config", async (req, res, next) => {
     ORDER BY (FINISHED * 1.25 + (STARTED-FINISHED)) ASC
     LIMIT 1;`
 
-    let minCombination = await DButils.executeQuery(roundRobinQuery).catch(e => {
+    let minCombination = await DButils.executeTrustedQuery(roundRobinQuery).catch(e => {
       throw e;
     });
 
@@ -240,26 +258,31 @@ app.get("/config", async (req, res, next) => {
     let chosen_election=minCombination[0].ELECTION;
     let new_time=minCombination[0].TIMES+"#"+new Date().getTime();
 
-    await DButils.executeQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED + 1}', TIMES = '${new_time}'
+    await DButils.executeTrustedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED + 1}', TIMES = '${new_time}'
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
 
     //get the items of the election in randomized order
-    let items = await DButils.executeQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
+    let items = await DButils.executeTrustedQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,
+                                      VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS 
+                                      JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID 
+                                      where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
       throw e;
     });
 
     let return_items=[];
     items.forEach(row => {
-      return_items.push({'item_id':row.ITEM_ID,'item_name':row.ITEM_NAME,'item_value':row.VALUE,'item_group':row.GROUP_NAME,'item_desc':row.DESCRIPTION,'url':row.URL,'coords':row.COORDS});
+      return_items.push({'item_id':row.ITEM_ID,'item_name':row.ITEM_NAME,'item_value':row.VALUE,
+      'item_group':row.GROUP_NAME,'item_desc':row.DESCRIPTION,'url':row.URL,'coords':row.COORDS});
     });
 
     //get random position as the user's home 
     let homeArr=[{x:10,y:20},{x:60,y:50},{x:40,y:30},{x:20,y:80}];
     let homePos=homeArr[Math.floor(Math.random() * homeArr.length)];
 
-    res.status(200).send({'items_from_groups':return_items,'voting_method':chosen_method,'election_num':chosen_election,'finished':false,'homePos':homePos});
+    res.status(200).send({'items_from_groups':return_items,'voting_method':chosen_method,
+                          'election_num':chosen_election,'finished':false,'homePos':homePos});
   } catch (error) {
     next(error);
   }
@@ -270,7 +293,6 @@ app.get("/", (req, res) => res.send("welcome"));
 app.use(function (err, req, res, next) {
   let errorStream = fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
   fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - ERROR: ' + err.message + '\n');
-  // console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });
 });
 

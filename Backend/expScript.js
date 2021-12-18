@@ -1,11 +1,11 @@
 const { format } = require("mysql2");
 const DButils = require("./DButils");
 
-
-  setInterval(run, 60 * 1000);
+//sets interval for every hour to clean the exp DB from unfinished expirements and to balance configuration table
+setInterval(run, 60 * 1000);
 
 async function run(){
-    let data=await DButils.executeQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS;`);
+    let data=await DButils.executeTrustedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS;`);
 
     let queries=[];
     data.forEach(async (row)=>{
@@ -21,7 +21,6 @@ async function run(){
                     if(minutesPassed>30) expired++;
                 }
             })
-            // console.log(expired);
             timeArr=timeArr.slice(expired+1);
             let updatedTimes='';
             timeArr.forEach((ts)=>{
@@ -31,9 +30,8 @@ async function run(){
             let started=Math.max(row.STARTED-expired,row.FINISHED);
 
             let query=`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}', TIMES = '${updatedTimes}' WHERE INPUT_FORMAT = '${row.INPUT_FORMAT}' AND ELECTION = '${row.ELECTION}';`
-            //query
             queries.push(query);
-            await DButils.executeQueries(queries);
+            await DButils.executeTrustedQueries(queries);
         }
     });
 }
