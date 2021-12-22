@@ -106,7 +106,6 @@ async function multipleDBbQueries(queries) {
           database: 'expKobi'
       }
     );
-
   } 
   catch (e) {
     console.log("Error", e.stack);
