@@ -5,7 +5,10 @@ const DButils = require("./DButils");
 setInterval(run, 60 * 1000);
 
 async function run(){
-    let data=await DButils.executeTrustedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS;`);
+    let data=await DButils.executeTrustedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS;`).catch(e =>{
+        console.log('script initial error : ' + e);
+    });
+
     if(data){
         data.forEach(async (row)=>{
             if(row.STARTED>0){
