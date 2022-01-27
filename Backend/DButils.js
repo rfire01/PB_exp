@@ -23,7 +23,7 @@ exports.executeProtectedQuery = async function(databaseQuery, values) {
   });
   
   conProm.query(databaseQuery, values, function (error, result) {
-    conProm.end();
+    //conProm.end();
     if(error){
       fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
       fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
@@ -45,7 +45,7 @@ async function dbQuery(databaseQuery) {
     });
     
     conProm.query(databaseQuery, function (error, result) {
-      conProm.end();
+      //conProm.end();
       if(error){
         fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
         fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' - SQL ERROR: ' + error.sqlMessage + '\n');
@@ -140,7 +140,7 @@ async function multipleDBbQueries(queries) {
       promises.push(result);
     }
 
-    conProm.end();
+    //conProm.end();
   } 
 
   return promises;
