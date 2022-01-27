@@ -1,5 +1,4 @@
-//const DButils = require("./DButils-local");
-const DButils = require("./DButils");
+const db = require("./db.js");
 
 exportExperimentsFromDateToExcel(new Date(1642961410315));
 
@@ -13,12 +12,12 @@ async function exportToExcel() {
     let null_items = [];
 
 
-    let experiments = await DButils.executeTrustedQuery('select * from EXPERIMMENTS WHERE TOKEN IS NOT NULL');
-    let arranged_items = await DButils.executeTrustedQuery('select * from ARRANGED_ITEMS');
-    let blacklist = await DButils.executeTrustedQuery('select * from BLACKLIST');
-    let exp_items = await DButils.executeTrustedQuery('select * from EXP_ITEMS');
-    let items = await DButils.executeTrustedQuery('select * from ITEMS');
-    let participants = await DButils.executeTrustedQuery('select * from PARTICIPANTS');
+    let experiments = await db.executeTrustedQuery('select * from EXPERIMMENTS WHERE TOKEN IS NOT NULL');
+    let arranged_items = await db.executeTrustedQuery('select * from ARRANGED_ITEMS');
+    let blacklist = await db.executeTrustedQuery('select * from BLACKLIST');
+    let exp_items = await db.executeTrustedQuery('select * from EXP_ITEMS');
+    let items = await db.executeTrustedQuery('select * from ITEMS');
+    let participants = await db.executeTrustedQuery('select * from PARTICIPANTS');
 
     const experiments_json = JSON.parse(JSON.stringify(experiments));
     const arranged_items_json = JSON.parse(JSON.stringify(arranged_items));
@@ -209,7 +208,7 @@ async function exportExperimentsFromDateToExcel(date) {
     } catch (e) {
         console.log("Error with Date")
     }
-    let experiments = await DButils.executeTrustedQuery('SELECT * FROM EXPERIMMENTS WHERE TOKEN IS NOT NULL AND CURTIME>' + initialMiliseconds);
+    let experiments = await db.executeTrustedQuery('SELECT * FROM EXPERIMMENTS WHERE TOKEN IS NOT NULL AND CURTIME>' + initialMiliseconds);
 
     const experiments_json = JSON.parse(JSON.stringify(experiments));
 

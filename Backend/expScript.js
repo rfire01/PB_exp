@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 const fs = require('fs');
 var path = require("path");
+//const mysqlssh = require('mysql-ssh');
 
 //independent script that sets interval for every minute to 
 //clean the exp DB from unfinished expirements and to balance configuration table
@@ -27,6 +28,21 @@ async function runCleanDBInterval() {
     //         database: 'expKobedev',
     //     }
     // );
+
+    //remote-prod
+//    let conProm = mysqlssh.connect(
+//     {
+//         host: '3.8.178.219',
+//         user: 'ubuntu',
+//         privateKey: fs.readFileSync('LightsailDefaultKey-eu-west-2.pem')
+//     },
+//     {
+//         host: '127.0.0.1',
+//         user: 'root',
+//         password: 'mkmHAD20/',
+//         database: 'expKobi'
+//     }
+//   );
 
 
     conProm.connect(function (err) {
