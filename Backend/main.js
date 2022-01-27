@@ -1,25 +1,29 @@
 require("dotenv").config();
-//#region express configures
 var express = require("express");
 var path = require("path");
 var logger = require("morgan");
 const session = require("client-sessions");
 const cors = require("cors");
-//dev
-//const DButils = require("./DButils-local");
-const DButils = require("./DButils");
 var fs = require('fs');
 
+const db =  require("./db.js");
+
 var app = express();
+
 var corsOptions = {
   origin: true,
   credentials: true
 }
+
 app.use(cors(corsOptions));
+
 let logStream = fs.createWriteStream(path.join("./", 'logger.log'), {flags: 'a'});
+
 app.use(logger('combined', { stream: logStream }));
 // app.use(logger("dev")); //logger
+
 app.use(express.json()); // parse application/json
+
 app.use(
   session({
     cookieName: "session", // the cookie key name
@@ -29,17 +33,18 @@ app.use(
     //the session will be extended by activeDuration milliseconds
   }
 ));
+
 app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
 app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
+
 var port = process.env.PORT || "3000";
 
 
 app.get("/userExists/participant_ID/:participant_ID", async (req, res, next) => {
   try {
     const { participant_ID } = req.params;
-    console.log("part_id: " + participant_ID);
 
-    let queryRes = await DButils.executeProtectedQuery('SELECT * FROM PARTICIPANTS WHERE PARTICIPANT_ID = ?', [participant_ID]).catch(e => {
+    let queryRes = await db.executeProtectedQuery('SELECT * FROM PARTICIPANTS WHERE PARTICIPANT_ID = ?', [participant_ID]).catch(e => {
       throw e;
     });
 
@@ -57,7 +62,7 @@ app.get("/userExists/participant_ID/:participant_ID", async (req, res, next) => 
 app.get("/isBlacklisted/participant_ID/:participant_ID", async (req, res, next) => {
   try {
     const { participant_ID } = req.params;
-    let queryRes = await DButils.executeProtectedQuery(`select * from BLACKLIST WHERE PARTICIPANT_ID = ?`, [participant_ID]).catch(e => {
+    let queryRes = await db.executeProtectedQuery(`select * from BLACKLIST WHERE PARTICIPANT_ID = ?`, [participant_ID]).catch(e => {
       throw e;
     });
 
@@ -79,12 +84,14 @@ app.post("/insertToBlacklist", async (req, res, next) => {
     const voting_method=req.body.voting_method;
     const election_num=req.body.election_num;
 
-    await DButils.executeProtectedQuery(`INSERT INTO BLACKLIST VALUE (?)`, [participant_ID]).catch(e => {
+    console.log("insertToBlacklist - part_id: " + participant_ID);
+
+    await db.executeProtectedQuery(`INSERT INTO BLACKLIST VALUE (?)`, [participant_ID]).catch(e => {
       throw e;
     });
 
     // remove from counting
-    let data=await DButils.executeProtectedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS WHERE INPUT_FORMAT = ? AND ELECTION = ?`, [voting_method, election_num]).catch(e => {
+    let data=await db.executeProtectedQuery(`SELECT * FROM ELECTIONS_INPUT_FORMATS WHERE INPUT_FORMAT = ? AND ELECTION = ?`, [voting_method, election_num]).catch(e => {
       throw e;
     });
     let timeArr=data[0].TIMES.split('#');
@@ -94,7 +101,7 @@ app.post("/insertToBlacklist", async (req, res, next) => {
         updatedTimes=updatedTimes+"#"+timeArr[i];
     }
     let started=data[0].STARTED-1;
-    await DButils.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}',TIMES = '${updatedTimes}' 
+    await db.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${started}',TIMES = '${updatedTimes}' 
                                 WHERE INPUT_FORMAT = ? AND ELECTION = ?;`,  [voting_method, election_num]).catch(e => {
       throw e;
     });
@@ -119,6 +126,7 @@ app.post("/addExperiment", async (req, res, next) => {
     const election_num=req.body.election_num;
     const homePos=req.body.homePos;
 
+    console.log("addExperiment - part_id: " + participant_ID);
 
     let participantQuery = `INSERT INTO PARTICIPANTS (PARTICIPANT_ID,AGE,EDUCATION,GENDER) VALUE (?,?,?,?)`;
     let participantQueryValues = [participant_ID,participant_info.age,participant_info.education,participant_info.gender];
@@ -128,10 +136,10 @@ app.post("/addExperiment", async (req, res, next) => {
     let expQueryValues = [participant_ID, time, tutorial_time,quiz_time, response_time, consistant, input_format, election_num, homePos];
 
     // Adds participant
-    await DButils.executeProtectedQuery(participantQuery, participantQueryValues).then(async () => {
+    await db.executeProtectedQuery(participantQuery, participantQueryValues).then(async () => {
 
       //Adds participant's Experiment
-      await DButils.executeProtectedQuery(expQuery, expQueryValues).then(() => {
+      await db.executeProtectedQuery(expQuery, expQueryValues).then(() => {
 
       }).catch(e => {
         throw {status: 401, message: 'duplicate attempt to participate the experiment - status 401'};
@@ -141,7 +149,7 @@ app.post("/addExperiment", async (req, res, next) => {
     });
 
     //Adds expirement final items
-    let exp_id = await DButils.executeTrustedQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
+    let exp_id = await db.executeTrustedQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
       throw e;
     });
 
@@ -157,7 +165,7 @@ app.post("/addExperiment", async (req, res, next) => {
       itemsQueryValues.push(exp_id[0]["max"] , item.item_id , item.item_value);
     }
 
-    await DButils.executeProtectedQuery(itemsQuery, itemsQueryValues).catch(e => {
+    await db.executeProtectedQuery(itemsQuery, itemsQueryValues).catch(e => {
       throw e;
     });
 
@@ -172,11 +180,14 @@ app.post("/addConsistency", async (req, res, next) => {
     const experiment_id=req.body.experiment_id;
     const consistant=req.body.consistant;
     const consistency_time=req.body.consistency_time;
+
+    console.log("addConsistency - part_id: " + participant_ID);
+
     if(!experiment_id){
       throw {status: 401};
     } else {
       let CurrentConsistency = 
-        await DButils.executeProtectedQuery(`SELECT ISCONSISTENT FROM EXPERIMMENTS WHERE EXP_ID = ?;`, [experiment_id]).catch(e => {
+        await db.executeProtectedQuery(`SELECT ISCONSISTENT FROM EXPERIMMENTS WHERE EXP_ID = ?;`, [experiment_id]).catch(e => {
           throw e;
         });
       if(CurrentConsistency[0].ISCONSISTENT !== '0' ){
@@ -184,7 +195,7 @@ app.post("/addConsistency", async (req, res, next) => {
         isConsistent : CurrentConsistency[0].ISCONSISTENT});
         return;
       }
-      await DButils.executeProtectedQuery(`UPDATE EXPERIMMENTS SET ISCONSISTENT = ?, CONSISTENCY_TIME= ? WHERE EXP_ID = ?;`,
+      await db.executeProtectedQuery(`UPDATE EXPERIMMENTS SET ISCONSISTENT = ?, CONSISTENCY_TIME= ? WHERE EXP_ID = ?;`,
        [consistant, consistency_time, experiment_id] ).catch(e => {
         throw e;
       });
@@ -209,6 +220,7 @@ app.post("/addFeedback", async (req, res, next) => {
     const input_format=req.body.input_format;
     const election=req.body.election;
 
+    console.log("addFeedback - part_id: " + participant_ID);
 
     const token=Math.floor(100000 + Math.random() * 900000);
 
@@ -219,17 +231,17 @@ app.post("/addFeedback", async (req, res, next) => {
                 WHERE EXP_ID = ?;` 
     const feedbackQueryValues = [q_ease, q_interface, q_capture, q_map, q_cat, q_map_access, total_time, token, experiment_id]
 
-    await DButils.executeProtectedQuery(feedbackQuery, feedbackQueryValues).catch(e => {
+    await db.executeProtectedQuery(feedbackQuery, feedbackQueryValues).catch(e => {
         throw e;
     });
     
-    let finishedByNow=await DButils.executeProtectedQuery(`SELECT FINISHED FROM ELECTIONS_INPUT_FORMATS
+    let finishedByNow=await db.executeProtectedQuery(`SELECT FINISHED FROM ELECTIONS_INPUT_FORMATS
         WHERE INPUT_FORMAT = ? AND ELECTION = ?;`, [input_format, election]).catch(e => {
           throw e;
         });
 
     //mark that the user complited the experiment
-    await DButils.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET FINISHED = '${finishedByNow[0].FINISHED+1}'
+    await db.executeProtectedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET FINISHED = '${finishedByNow[0].FINISHED+1}'
         WHERE INPUT_FORMAT = ? AND ELECTION = ?;`, [input_format, election]).catch(e => {
           throw e;
         });
@@ -250,7 +262,7 @@ app.get("/config", async (req, res, next) => {
     ORDER BY (FINISHED * 1.25 + (STARTED-FINISHED)) ASC
     LIMIT 1;`
 
-    let minCombination = await DButils.executeTrustedQuery(roundRobinQuery).catch(e => {
+    let minCombination = await db.executeTrustedQuery(roundRobinQuery).catch(e => {
       throw e;
     });
 
@@ -258,19 +270,18 @@ app.get("/config", async (req, res, next) => {
     let chosen_election=minCombination[0].ELECTION;
     let new_time=minCombination[0].TIMES+"#"+new Date().getTime();
 
-    await DButils.executeTrustedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED + 1}', TIMES = '${new_time}'
+    await db.executeTrustedQuery(`UPDATE ELECTIONS_INPUT_FORMATS SET STARTED = '${minCombination[0].STARTED + 1}', TIMES = '${new_time}'
                                   WHERE INPUT_FORMAT = '${chosen_method}' AND ELECTION = '${chosen_election}';`).catch(e => {
                                     throw e;
                                   });
 
     //get the items of the election in randomized order
-    let items = await DButils.executeTrustedQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,
+    let items = await db.executeTrustedQuery(`SELECT ITEMS.ITEM_ID,ITEM_NAME,GROUP_NAME,
                                       VALUE,URL,COORDS,DESCRIPTION from ARRANGED_ITEMS 
                                       JOIN ITEMS ON ITEMS.ITEM_ID=ARRANGED_ITEMS.ITEM_ID 
                                       where SENARIO='${chosen_election}' ORDER BY RAND ( ) `).catch(e => {
       throw e;
     });
-
     let return_items=[];
     items.forEach(row => {
       return_items.push({'item_id':row.ITEM_ID,'item_name':row.ITEM_NAME,'item_value':row.VALUE,
