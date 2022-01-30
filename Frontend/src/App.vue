@@ -82,6 +82,7 @@ export default {
   },
   watch: {
     '$route' (to, from) {
+      this.checkIfBlackListed();
        if (to !== null && !window.location.href.endsWith('/#/') && !window.location.href.includes('Consistency') 
         && !window.location.href.includes('Feedback_quiz')){
          this.checkIfExist();
