@@ -1,6 +1,6 @@
-const db = require("./db.js");
+const db = require("./DButils.js")
 
-exportExperimentsFromDateToExcel(new Date(1642961410315));
+exportExperimentsFromDateToExcel(new Date(1643300783061));
 
 async function exportToExcel() {
     const Json2csvParser = require('json2csv').Parser;
