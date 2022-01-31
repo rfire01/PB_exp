@@ -82,13 +82,14 @@ export default {
   },
   watch: {
     '$route' (to, from) {
-      this.checkIfBlackListed();
-       if (to !== null && !window.location.href.endsWith('/#/') && !window.location.href.includes('Consistency') 
-        && !window.location.href.includes('Feedback_quiz')){
-         this.checkIfExist();
-      } else {
-         this.userAllreadyExists = false;
-      }
+       if (to !== null && !window.location.href.endsWith('/#/')){
+          this.checkIfBlackListed();
+          if( !window.location.href.includes('Consistency') && !window.location.href.includes('Feedback_quiz')){
+                this.checkIfExist();
+          } else {
+            this.userAllreadyExists = false;
+          }
+       }
     }
   },
   async mounted() {
