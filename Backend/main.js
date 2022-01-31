@@ -181,7 +181,7 @@ app.post("/addConsistency", async (req, res, next) => {
     const consistant=req.body.consistant;
     const consistency_time=req.body.consistency_time;
 
-    console.log("addConsistency - part_id: " + participant_ID);
+    console.log("addConsistency - exp_id: " +  experiment_id);
 
     if(!experiment_id){
       throw {status: 401};
@@ -220,7 +220,7 @@ app.post("/addFeedback", async (req, res, next) => {
     const input_format=req.body.input_format;
     const election=req.body.election;
 
-    console.log("addFeedback - part_id: " + participant_ID);
+    console.log("addFeedback - exp_id: " + experiment_id);
 
     const token=Math.floor(100000 + Math.random() * 900000);
 
@@ -248,7 +248,7 @@ app.post("/addFeedback", async (req, res, next) => {
 
     res.status(201).send({ token: token});
   } catch (error) {
-    next({message : 'invalid details Error.', status: 400});
+    next({message : 'invalid details Error.' + error, status: 400});
   }
 });
 
