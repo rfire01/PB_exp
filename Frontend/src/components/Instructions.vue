@@ -36,6 +36,9 @@
       <br><br>
       <h5>4) Feedback</h5>
       The final part is for you to give us feedback on your experience (you must complete this step to get your payment).
+      <br><br>
+      <h5>*Notice:</h5>
+      Going backward after finishing a step in the experiment will disqualify you and you will not recieve payment.
     </b-card>
     <b-card style="background-color:#e8e8e8; max-width:900px;margin: auto;">
       <h3>Your payment:</h3>
