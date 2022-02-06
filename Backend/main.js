@@ -166,8 +166,12 @@ app.post("/addExperiment", async (req, res, next) => {
     }
 
     await db.executeProtectedQuery(itemsQuery, itemsQueryValues).catch(e => {
-      let errorStream = fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-      fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["max"] + ' - items-error: ' + e.sqlMessage + '\n');
+      try {
+        let errorStream = fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
+        fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["max"] + ' - items-error: ' + e.sqlMessage + '\n');
+      } catch {
+        console.log(new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["max"] + ' - items-error: ' + e.sqlMessage)
+      }
       throw e;
     });
 
