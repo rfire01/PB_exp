@@ -58,7 +58,7 @@ async function runCleanDBInterval() {
                         data.forEach(async (row) => {
                             if (row.STARTED > 0) {
                                 let expired = 0;
-                                let timeArr = row.TIMES.split('#');
+                                let timeArr = row.TIMES?  row.TIMES.split('#') : [];
 
                                 timeArr.forEach((ts) => {
                                     if (ts.length > 0) {
