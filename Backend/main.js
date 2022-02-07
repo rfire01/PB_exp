@@ -127,6 +127,7 @@ app.post("/addExperiment", async (req, res, next) => {
     const homePos=req.body.homePos;
 
     console.log("addExperiment - part_id: " + participant_ID);
+    console.log("items length: " + (items? items.length: 0));
 
     let participantQuery = `INSERT INTO PARTICIPANTS (PARTICIPANT_ID,AGE,EDUCATION,GENDER) VALUE (?,?,?,?)`;
     let participantQueryValues = [participant_ID,participant_info.age,participant_info.education,participant_info.gender];
