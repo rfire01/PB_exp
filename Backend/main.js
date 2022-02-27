@@ -150,11 +150,11 @@ app.post("/addExperiment", async (req, res, next) => {
     });
 
     //Adds expirement final items
-    let exp_id = await db.executeTrustedQuery(`SELECT max(EXP_ID) as max FROM EXPERIMMENTS`).catch(e => {
+    let exp_id = await db.executeProtectedQuery(`SELECT (EXP_ID) as matched FROM EXPERIMMENTS where PARTICIPANT_ID = ?`, [participant_ID] ).catch(e => {
       throw e;
     });
 
-    exp_id[0]["max"]=parseInt(exp_id[0]["max"]);
+    exp_id[0]["matched"]=parseInt(exp_id[0]["matched"]);
 
     let itemsQuery="INSERT INTO EXP_ITEMS (EXP_ID,ITEM_ID,VALUE) VALUES ";
     let itemsQueryValues = []
@@ -163,20 +163,20 @@ app.post("/addExperiment", async (req, res, next) => {
       let item=items[index];
       if(index>0) itemsQuery+=",";
       itemsQuery+="(?,?,?)";
-      itemsQueryValues.push(exp_id[0]["max"] , item.item_id , item.item_value);
+      itemsQueryValues.push(exp_id[0]["matched"] , item.item_id , item.item_value);
     }
 
     await db.executeProtectedQuery(itemsQuery, itemsQueryValues).catch(e => {
       try {
         let errorStream = fs.createWriteStream(path.join("./", 'error.log'), {flags: 'a'});
-        fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["max"] + ' - items-error: ' + e.sqlMessage + '\n');
+        fs.appendFileSync("./error.log",new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["matched"] + ' - items-error: ' + e.sqlMessage + '\n');
       } catch {
-        console.log(new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["max"] + ' - items-error: ' + e.sqlMessage)
+        console.log(new Date(parseInt(new Date().getTime())).toString()+ ' expId: ' +  exp_id[0]["matched"] + ' - items-error: ' + e.sqlMessage)
       }
       throw e;
     });
 
-    res.status(201).send({ experiment_id: exp_id[0]["max"]});
+    res.status(201).send({ experiment_id: exp_id[0]["matched"]});
   } catch (error) {
     next(error);
   }
